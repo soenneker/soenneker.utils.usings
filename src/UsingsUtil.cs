@@ -32,7 +32,6 @@ public sealed class UsingsUtil : IUsingsUtil
 
     public async ValueTask AddMissing(string csprojPath, CancellationToken cancellationToken = default)
     {
-        // TODO: Need global guaranteed singleton here
         if (!MSBuildLocator.IsRegistered)
             MSBuildLocator.RegisterDefaults();
 
@@ -50,7 +49,8 @@ public sealed class UsingsUtil : IUsingsUtil
             SyntaxNode? root = await document.GetSyntaxRootAsync(cancellationToken).NoSync();
             SemanticModel? semanticModel = await document.GetSemanticModelAsync(cancellationToken).NoSync();
 
-            List<Diagnostic> diagnostics = semanticModel.GetDiagnostics(root!.FullSpan, cancellationToken).Where(d => d.Id is "CS0246" or "CS0103").ToList();
+            List<Diagnostic> diagnostics = semanticModel.GetDiagnostics(root!.FullSpan, cancellationToken)
+                .Where(d => d.Id is "CS0246" or "CS0103").ToList();
 
             if (diagnostics.Count == 0)
                 continue;
@@ -85,9 +85,24 @@ public sealed class UsingsUtil : IUsingsUtil
             document = await Simplifier.ReduceAsync(document, options, cancellationToken).NoSync();
             document = await Formatter.FormatAsync(document, options, cancellationToken).NoSync();
 
-            SourceText updatedCode = await document.GetTextAsync(cancellationToken).NoSync();
-            string path = document.FilePath!;
-            await _fileUtil.Write(path, updatedCode.ToString(), cancellationToken).NoSync();
+            // Reanalyze for harmful diagnostics like CS0104
+            var updatedSemanticModel = await document.GetSemanticModelAsync(cancellationToken).NoSync();
+            var newDiagnostics = updatedSemanticModel.GetDiagnostics(cancellationToken: cancellationToken);
+
+            bool hasHarmfulDiagnostics = newDiagnostics.Any(d => d.Id is "CS0104" or "CS0433");
+
+            if (hasHarmfulDiagnostics)
+                continue; // Skip writing if ambiguous reference or similar is introduced
+
+            SourceText originalText = await originalDoc.GetTextAsync(cancellationToken).NoSync();
+            SourceText updatedText = await document.GetTextAsync(cancellationToken).NoSync();
+
+            if (!originalText.ContentEquals(updatedText))
+            {
+                string path = document.FilePath!;
+                await _fileUtil.Write(path, updatedText.ToString(), cancellationToken).NoSync();
+            }
         }
     }
+
 }
