@@ -1,6 +1,8 @@
 ﻿using Soenneker.Utils.Usings.Abstract;
 using Soenneker.Tests.FixturedUnit;
 using Xunit;
+using System.Threading.Tasks;
+using Soenneker.Facts.Local;
 
 namespace Soenneker.Utils.Usings.Tests;
 
@@ -14,9 +16,9 @@ public class UsingsUtilTests : FixturedUnitTest
         _util = Resolve<IUsingsUtil>(true);
     }
 
-    [Fact]
-    public void Default()
+    [LocalFact]
+    public async ValueTask Default()
     {
-
+        await _util.AddMissing("", CancellationToken);
     }
 }
