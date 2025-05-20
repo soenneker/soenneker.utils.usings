@@ -16,8 +16,13 @@ public class UsingsUtilTests : FixturedUnitTest
         _util = Resolve<IUsingsUtil>(true);
     }
 
+    [Fact]
+    public void Default()
+    {
+    }
+
     [LocalFact]
-    public async ValueTask Default()
+    public async ValueTask AddMissing_should_add_missing()
     {
         await _util.AddMissing("", CancellationToken);
     }
