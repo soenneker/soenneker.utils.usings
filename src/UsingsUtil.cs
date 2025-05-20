@@ -51,21 +51,25 @@ public sealed class UsingsUtil : IUsingsUtil
         OptionSet options = workspace.Options.WithChangedOption(FormattingOptions.UseTabs, LanguageNames.CSharp, false)
                                      .WithChangedOption(FormattingOptions.TabSize, LanguageNames.CSharp, 4);
 
+        _logger.LogDebug("Processing {count} documents in project...", project.Documents.Count());
+
         foreach (Document originalDoc in project.Documents)
         {
             string docPath = originalDoc.FilePath ?? "unknown";
-            _logger.LogDebug("Processing document: {DocPath}", docPath);
+            //_logger.LogDebug("Processing document: {DocPath}", docPath);
 
             Document document = originalDoc;
 
             SyntaxNode? root = await document.GetSyntaxRootAsync(cancellationToken).NoSync();
             SemanticModel? semanticModel = await document.GetSemanticModelAsync(cancellationToken).NoSync();
 
-            List<Diagnostic> diagnostics = semanticModel.GetDiagnostics(root!.FullSpan, cancellationToken).Where(d => d.Id is "CS0246" or "CS0103").ToList();
+            List<Diagnostic> diagnostics = semanticModel.GetDiagnostics(root!.FullSpan, cancellationToken).ToList();
 
-            if (diagnostics.Count == 0)
+            List<Diagnostic> filtered = diagnostics.Where(d => d.Id is "CS0246" or "CS0103" or "CS0738").ToList();
+
+            if (filtered.Count == 0)
             {
-                _logger.LogDebug("No missing using diagnostics found in {DocPath}", docPath);
+                //_logger.LogDebug("No missing using diagnostics found in {DocPath}", docPath);
                 continue;
             }
 

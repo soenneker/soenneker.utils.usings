@@ -24,6 +24,6 @@ public class UsingsUtilTests : FixturedUnitTest
     [LocalFact]
     public async ValueTask AddMissing_should_add_missing()
     {
-        await _util.AddMissing("", CancellationToken);
+        await _util.AddMissing("C:\\git\\Soenneker\\GitHub\\soenneker.github.openapiclient\\src\\soenneker.github.openapiclient.csproj", CancellationToken);
     }
 }
