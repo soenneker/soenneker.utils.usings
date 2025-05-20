@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using Microsoft.Build.Locator;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
@@ -16,6 +11,12 @@ using Soenneker.Extensions.Task;
 using Soenneker.Extensions.ValueTask;
 using Soenneker.Utils.File.Abstract;
 using Soenneker.Utils.Usings.Abstract;
+using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Soenneker.Utils.Usings;
 
@@ -31,6 +32,10 @@ public sealed class UsingsUtil : IUsingsUtil
 
     public async ValueTask AddMissing(string csprojPath, CancellationToken cancellationToken = default)
     {
+        // TODO: Need global guaranteed singleton here
+        if (!MSBuildLocator.IsRegistered)
+            MSBuildLocator.RegisterDefaults();
+
         using var workspace = MSBuildWorkspace.Create();
 
         Project project = await workspace.OpenProjectAsync(csprojPath, cancellationToken: cancellationToken).NoSync();
