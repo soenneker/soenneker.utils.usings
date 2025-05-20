@@ -52,7 +52,7 @@ public sealed class UsingsUtil : IUsingsUtil
 
             List<Diagnostic> diagnostics = semanticModel.GetDiagnostics(root!.FullSpan, cancellationToken).Where(d => d.Id is "CS0246" or "CS0103").ToList();
 
-            if (!diagnostics.Any())
+            if (diagnostics.Count == 0)
                 continue;
 
             var type = Type.GetType("Microsoft.CodeAnalysis.CSharp.AddImport.CSharpAddImportCodeFixProvider, Microsoft.CodeAnalysis.CSharp.Features");
