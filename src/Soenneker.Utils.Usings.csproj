@@ -32,6 +32,7 @@
         <LangVersion>latest</LangVersion>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageIcon>icon.png</PackageIcon>
+        <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
     </PropertyGroup>
 
     <ItemGroup>
@@ -42,13 +43,16 @@
 
     <!-- Include BuildHost folders -->
     <ItemGroup>
-        <None Include="BuildHost-net472\**\*.*" Pack="true" PackagePath="build\BuildHost-net472\" CopyToOutputDirectory="PreserveNewest" />
-        <None Include="BuildHost-netcore\**\*.*" Pack="true" PackagePath="build\BuildHost-netcore\" CopyToOutputDirectory="PreserveNewest" />
+        <None Include="BuildHost-net472\**\*.*" Pack="true" PackagePath="build\BuildHost-net472\"
+              CopyToOutputDirectory="PreserveNewest" />
+        <None Include="BuildHost-netcore\**\*.*" Pack="true" PackagePath="build\BuildHost-netcore\"
+              CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 
     <!-- Include the .targets file -->
     <ItemGroup>
-        <None Include="build\Soenneker.Utils.Usings.targets" Pack="true" PackagePath="build\Soenneker.Utils.Usings.targets" />
+        <None Include="build\Soenneker.Utils.Usings.targets" Pack="true"
+              PackagePath="build\Soenneker.Utils.Usings.targets" />
     </ItemGroup>
 
     <ItemGroup>
