@@ -33,12 +33,22 @@
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageIcon>icon.png</PackageIcon>
     </PropertyGroup>
-    
+
     <ItemGroup>
-        
         <None Include="..\README.md" Pack="true" PackagePath="\" />
         <None Include="..\LICENSE" Pack="true" PackagePath="\" />
         <None Include="..\icon.png" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
+    <!-- Include BuildHost folders -->
+    <ItemGroup>
+        <None Include="BuildHost-net472\**\*.*" Pack="true" PackagePath="build\BuildHost-net472\" CopyToOutputDirectory="PreserveNewest" />
+        <None Include="BuildHost-netcore\**\*.*" Pack="true" PackagePath="build\BuildHost-netcore\" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
+    <!-- Include the .targets file -->
+    <ItemGroup>
+        <None Include="build\Soenneker.Utils.Usings.targets" Pack="true" PackagePath="build\Soenneker.Utils.Usings.targets" />
     </ItemGroup>
 
     <ItemGroup>
@@ -48,4 +58,5 @@
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" Version="4.14.0" />
         <PackageReference Include="Soenneker.Utils.File" Version="3.0.1931" />
     </ItemGroup>
+
 </Project>
