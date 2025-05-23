@@ -69,7 +69,7 @@ public sealed class UsingsUtil : IUsingsUtil
             Compilation compilation = await project.GetCompilationAsync(cancellationToken).NoSync();
             _logger.LogInformation("Compilation complete: {AssemblyName}", compilation.AssemblyName);
             Dictionary<SyntaxTree, List<Diagnostic>> diagMap = compilation.GetDiagnostics(cancellationToken)
-                                                                          .Where(d => d.Id is "CS0246" or "CS0103" or "CS0738" && d.Location.SourceTree != null)
+                                                                          .Where(d => d.Id is "CS0246" or "CS0103" or "CS0738" or "CS1061" && d.Location.SourceTree != null)
                                                                           .GroupBy(d => d.Location.SourceTree!)
                                                                           .ToDictionary(g => g.Key, g => g.ToList());
 
