@@ -21,11 +21,18 @@ using Microsoft.Extensions.Logging;
 
 namespace Soenneker.Utils.Usings;
 
-/// <inheritdoc cref="IUsingsUtil"/>
+///<inheritdoc cref="IUsingsUtil"/>
 public sealed class UsingsUtil : IUsingsUtil
 {
     private readonly IFileUtil _fileUtil;
     private readonly ILogger<UsingsUtil> _logger;
+    private static readonly Lazy<CodeFixProvider> _addImportProvider = new(() =>
+    {
+        var type = Type.GetType("Microsoft.CodeAnalysis.CSharp.AddImport.CSharpAddImportCodeFixProvider, Microsoft.CodeAnalysis.CSharp.Features");
+        if (type == null)
+            throw new InvalidOperationException("CSharpAddImportCodeFixProvider not found. Ensure the Roslyn features package is referenced.");
+        return (CodeFixProvider)Activator.CreateInstance(type)!;
+    });
 
     public UsingsUtil(IFileUtil fileUtil, ILogger<UsingsUtil> logger)
     {
@@ -41,9 +48,9 @@ public sealed class UsingsUtil : IUsingsUtil
             _logger.LogDebug("MSBuildLocator registered.");
         }
 
-        var totalResolved = 0;
-        var totalDetected = 0;
-        var pass = 0;
+        int totalResolved = 0;
+        int totalDetected = 0;
+        int pass = 0;
         bool changesMade;
 
         do
@@ -53,71 +60,53 @@ public sealed class UsingsUtil : IUsingsUtil
             changesMade = false;
 
             using var workspace = MSBuildWorkspace.Create();
-            _logger.LogInformation("Project ({ProjectName}) loading...", csprojPath);
-
             Project project = await workspace.OpenProjectAsync(csprojPath, cancellationToken: cancellationToken).NoSync();
 
-            _logger.LogDebug("Project ({AssemblyName}) compiling...", project.AssemblyName);
-            Compilation? compilation = await project.GetCompilationAsync(cancellationToken).NoSync();
-            _logger.LogDebug("Project ({AssemblyName}) compiled", compilation?.AssemblyName);
+            Compilation compilation = await project.GetCompilationAsync(cancellationToken).NoSync();
+            Dictionary<SyntaxTree, List<Diagnostic>> diagMap = compilation.GetDiagnostics(cancellationToken)
+                                                                          .Where(d => d.Id is "CS0246" or "CS0103" or "CS0738" && d.Location.SourceTree != null)
+                                                                          .GroupBy(d => d.Location.SourceTree!)
+                                                                          .ToDictionary(g => g.Key, g => g.ToList());
 
-            _logger.LogInformation("Initial diagnostic count: {Count}", compilation.GetDiagnostics(cancellationToken).Length);
-
-            OptionSet options = workspace.Options.WithChangedOption(FormattingOptions.UseTabs, LanguageNames.CSharp, false)
-                                         .WithChangedOption(FormattingOptions.TabSize, LanguageNames.CSharp, 4);
+            OptionSet options = workspace.Options
+                .WithChangedOption(FormattingOptions.UseTabs, LanguageNames.CSharp, false)
+                .WithChangedOption(FormattingOptions.TabSize, LanguageNames.CSharp, 4);
 
             foreach (Document originalDoc in project.Documents)
             {
+                SyntaxTree? syntaxTree = await originalDoc.GetSyntaxTreeAsync(cancellationToken);
+                if (syntaxTree == null || !diagMap.TryGetValue(syntaxTree, out List<Diagnostic>? filtered))
+                    continue;
+
                 string docPath = originalDoc.FilePath ?? "unknown";
                 Document document = originalDoc;
 
-                SyntaxNode? root = await document.GetSyntaxRootAsync(cancellationToken).NoSync();
-                SemanticModel? semanticModel = await document.GetSemanticModelAsync(cancellationToken).NoSync();
-
-                List<Diagnostic> diagnostics = semanticModel!.GetDiagnostics(root!.FullSpan, cancellationToken).ToList();
-                List<Diagnostic> filtered = diagnostics.Where(d => d.Id is "CS0246" or "CS0103" or "CS0738").ToList();
-
-                if (filtered.Count == 0)
-                    continue;
-
                 totalDetected += filtered.Count;
-                _logger.LogInformation("Found {Count} missing using diagnostics in {DocPath}", filtered.Count, docPath);
 
-                var type = Type.GetType("Microsoft.CodeAnalysis.CSharp.AddImport.CSharpAddImportCodeFixProvider, Microsoft.CodeAnalysis.CSharp.Features");
-
-                if (type == null)
-                {
-                    _logger.LogError("CSharpAddImportCodeFixProvider not found.");
-                    throw new InvalidOperationException("CSharpAddImportCodeFixProvider not found. Ensure the Roslyn features package is referenced.");
-                }
-
-                var provider = (CodeFixProvider) Activator.CreateInstance(type)!;
+                CodeFixProvider provider = _addImportProvider.Value;
 
                 foreach (Diagnostic diagnostic in filtered)
                 {
                     var actions = new List<CodeAction>();
-
-                    var context = new CodeFixContext(document, diagnostic, (action, _) =>
-                    {
-                        _logger.LogDebug("Registering code fix: {Title} for diagnostic {DiagnosticId}", action.Title, diagnostic.Id);
-                        actions.Add(action);
-                    }, cancellationToken);
-
+                    var context = new CodeFixContext(document, diagnostic, (action, _) => actions.Add(action), cancellationToken);
                     await provider.RegisterCodeFixesAsync(context).NoSync();
 
                     foreach (CodeAction action in actions)
                     {
                         ImmutableArray<CodeActionOperation> operations = await action.GetOperationsAsync(cancellationToken);
-
                         foreach (ApplyChangesOperation op in operations.OfType<ApplyChangesOperation>())
-                        {
                             document = op.ChangedSolution.GetDocument(document.Id)!;
-                        }
                     }
                 }
 
-                document = await Simplifier.ReduceAsync(document, options, cancellationToken).NoSync();
-                document = await Formatter.FormatAsync(document, options, cancellationToken).NoSync();
+                SyntaxNode? originalRoot = await originalDoc.GetSyntaxRootAsync(cancellationToken).NoSync();
+                SyntaxNode? updatedRoot = await document.GetSyntaxRootAsync(cancellationToken).NoSync();
+
+                if (!originalRoot!.IsEquivalentTo(updatedRoot, topLevel: false))
+                {
+                    document = await Simplifier.ReduceAsync(document, options, cancellationToken).NoSync();
+                    document = await Formatter.FormatAsync(document, options, cancellationToken).NoSync();
+                }
 
                 SemanticModel? updatedSemanticModel = await document.GetSemanticModelAsync(cancellationToken).NoSync();
                 ImmutableArray<Diagnostic> newDiagnostics = updatedSemanticModel.GetDiagnostics(cancellationToken: cancellationToken);
@@ -126,10 +115,9 @@ public sealed class UsingsUtil : IUsingsUtil
                 totalResolved += resolvedCount;
 
                 bool hasHarmfulDiagnostics = newDiagnostics.Any(d => d.Id is "CS0104" or "CS0433");
-
                 if (hasHarmfulDiagnostics)
                 {
-                    _logger.LogWarning("Harmful diagnostics detected in {DocPath}, skipping write.", docPath);
+                    _logger.LogWarning("Harmful diagnostics in {DocPath}, skipping write.", docPath);
                     continue;
                 }
 
@@ -142,10 +130,6 @@ public sealed class UsingsUtil : IUsingsUtil
                     changesMade = true;
                     _logger.LogInformation("Applied missing usings to: {DocPath}", docPath);
                 }
-                else
-                {
-                    _logger.LogDebug("No changes detected for {DocPath}, skipping write.", docPath);
-                }
             }
 
             if (loopUntilNoChanges && changesMade)
@@ -156,6 +140,7 @@ public sealed class UsingsUtil : IUsingsUtil
                 _logger.LogWarning("Maximum number of passes ({MaxPasses}) reached. Stopping iteration.", maxPasses);
                 break;
             }
+
         } while (loopUntilNoChanges && changesMade);
 
         _logger.LogInformation("Completed adding missing usings.");
