@@ -1,4 +1,5 @@
-﻿using Microsoft.Build.Locator;
+﻿// Optimized UsingsUtil without parallelization
+using Microsoft.Build.Locator;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
@@ -48,9 +49,9 @@ public sealed class UsingsUtil : IUsingsUtil
             _logger.LogDebug("MSBuildLocator registered.");
         }
 
-        int totalResolved = 0;
-        int totalDetected = 0;
-        int pass = 0;
+        var totalResolved = 0;
+        var totalDetected = 0;
+        var pass = 0;
         bool changesMade;
 
         do
@@ -60,9 +61,13 @@ public sealed class UsingsUtil : IUsingsUtil
             changesMade = false;
 
             using var workspace = MSBuildWorkspace.Create();
+            _logger.LogInformation("Project loading: {ProjectPath}...", csprojPath);
             Project project = await workspace.OpenProjectAsync(csprojPath, cancellationToken: cancellationToken).NoSync();
+            _logger.LogInformation("Project loaded: {ProjectName}", project.Name);
 
+            _logger.LogInformation("Compiling project: {ProjectName}...", project.Name);
             Compilation compilation = await project.GetCompilationAsync(cancellationToken).NoSync();
+            _logger.LogInformation("Compilation complete: {AssemblyName}", compilation.AssemblyName);
             Dictionary<SyntaxTree, List<Diagnostic>> diagMap = compilation.GetDiagnostics(cancellationToken)
                                                                           .Where(d => d.Id is "CS0246" or "CS0103" or "CS0738" && d.Location.SourceTree != null)
                                                                           .GroupBy(d => d.Location.SourceTree!)
@@ -101,7 +106,6 @@ public sealed class UsingsUtil : IUsingsUtil
 
                 SyntaxNode? originalRoot = await originalDoc.GetSyntaxRootAsync(cancellationToken).NoSync();
                 SyntaxNode? updatedRoot = await document.GetSyntaxRootAsync(cancellationToken).NoSync();
-
                 if (!originalRoot!.IsEquivalentTo(updatedRoot, topLevel: false))
                 {
                     document = await Simplifier.ReduceAsync(document, options, cancellationToken).NoSync();
