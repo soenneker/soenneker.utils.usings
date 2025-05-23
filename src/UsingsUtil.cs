@@ -41,7 +41,9 @@ public sealed class UsingsUtil : IUsingsUtil
             _logger.LogDebug("MSBuildLocator registered.");
         }
 
-        int pass = 0;
+        var totalResolved = 0;
+        var totalDetected = 0;
+        var pass = 0;
         bool changesMade;
 
         do
@@ -51,12 +53,18 @@ public sealed class UsingsUtil : IUsingsUtil
             changesMade = false;
 
             using var workspace = MSBuildWorkspace.Create();
-            Project project = await workspace.OpenProjectAsync(csprojPath, cancellationToken: cancellationToken).NoSync();
-            _logger.LogInformation("Project loaded: {ProjectName}", project.Name);
+            _logger.LogInformation("Project ({ProjectName}) loading...", csprojPath);
 
-            OptionSet options = workspace.Options
-                .WithChangedOption(FormattingOptions.UseTabs, LanguageNames.CSharp, false)
-                .WithChangedOption(FormattingOptions.TabSize, LanguageNames.CSharp, 4);
+            Project project = await workspace.OpenProjectAsync(csprojPath, cancellationToken: cancellationToken).NoSync();
+
+            _logger.LogDebug("Project ({AssemblyName}) compiling...", project.AssemblyName);
+            Compilation? compilation = await project.GetCompilationAsync(cancellationToken).NoSync();
+            _logger.LogDebug("Project ({AssemblyName}) compiled", compilation?.AssemblyName);
+
+            _logger.LogInformation("Initial diagnostic count: {Count}", compilation.GetDiagnostics(cancellationToken).Length);
+
+            OptionSet options = workspace.Options.WithChangedOption(FormattingOptions.UseTabs, LanguageNames.CSharp, false)
+                                         .WithChangedOption(FormattingOptions.TabSize, LanguageNames.CSharp, 4);
 
             foreach (Document originalDoc in project.Documents)
             {
@@ -66,12 +74,13 @@ public sealed class UsingsUtil : IUsingsUtil
                 SyntaxNode? root = await document.GetSyntaxRootAsync(cancellationToken).NoSync();
                 SemanticModel? semanticModel = await document.GetSemanticModelAsync(cancellationToken).NoSync();
 
-                List<Diagnostic> diagnostics = semanticModel.GetDiagnostics(root!.FullSpan, cancellationToken).ToList();
+                List<Diagnostic> diagnostics = semanticModel!.GetDiagnostics(root!.FullSpan, cancellationToken).ToList();
                 List<Diagnostic> filtered = diagnostics.Where(d => d.Id is "CS0246" or "CS0103" or "CS0738").ToList();
 
                 if (filtered.Count == 0)
                     continue;
 
+                totalDetected += filtered.Count;
                 _logger.LogInformation("Found {Count} missing using diagnostics in {DocPath}", filtered.Count, docPath);
 
                 var type = Type.GetType("Microsoft.CodeAnalysis.CSharp.AddImport.CSharpAddImportCodeFixProvider, Microsoft.CodeAnalysis.CSharp.Features");
@@ -82,7 +91,7 @@ public sealed class UsingsUtil : IUsingsUtil
                     throw new InvalidOperationException("CSharpAddImportCodeFixProvider not found. Ensure the Roslyn features package is referenced.");
                 }
 
-                var provider = (CodeFixProvider)Activator.CreateInstance(type)!;
+                var provider = (CodeFixProvider) Activator.CreateInstance(type)!;
 
                 foreach (Diagnostic diagnostic in filtered)
                 {
@@ -113,6 +122,9 @@ public sealed class UsingsUtil : IUsingsUtil
                 SemanticModel? updatedSemanticModel = await document.GetSemanticModelAsync(cancellationToken).NoSync();
                 ImmutableArray<Diagnostic> newDiagnostics = updatedSemanticModel.GetDiagnostics(cancellationToken: cancellationToken);
 
+                int resolvedCount = filtered.Count(d => !newDiagnostics.Any(nd => nd.Id == d.Id && nd.Location.SourceSpan == d.Location.SourceSpan));
+                totalResolved += resolvedCount;
+
                 bool hasHarmfulDiagnostics = newDiagnostics.Any(d => d.Id is "CS0104" or "CS0433");
 
                 if (hasHarmfulDiagnostics)
@@ -132,7 +144,7 @@ public sealed class UsingsUtil : IUsingsUtil
                 }
                 else
                 {
-                    _logger.LogDebug("No changes detected for {DocPath}, skipping write.");
+                    _logger.LogDebug("No changes detected for {DocPath}, skipping write.", docPath);
                 }
             }
 
@@ -144,9 +156,10 @@ public sealed class UsingsUtil : IUsingsUtil
                 _logger.LogWarning("Maximum number of passes ({MaxPasses}) reached. Stopping iteration.", maxPasses);
                 break;
             }
-
         } while (loopUntilNoChanges && changesMade);
 
         _logger.LogInformation("Completed adding missing usings.");
+        _logger.LogInformation("Total missing using diagnostics found: {TotalDetected}", totalDetected);
+        _logger.LogInformation("Total diagnostics resolved: {TotalResolved}", totalResolved);
     }
 }
