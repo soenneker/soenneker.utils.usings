@@ -52,17 +52,15 @@
               SkipUnchangedFiles="true" />
     </Target>
 
-    <!-- Include BuildHost folders -->
+    <!-- Include BuildHost folders in package -->
     <ItemGroup>
-        <None Include="$(OutputPath)BuildHost-netcore\**\*.*" Pack="true" PackagePath="build\BuildHost-netcore\"
-              CopyToOutputDirectory="PreserveNewest" />
-        <None Include="build\**\*.*" Pack="true" PackagePath="build\" />
+        <Content Include="$(OutputPath)BuildHost-netcore\**\*.*" Pack="true" PackagePath="build\BuildHost-netcore\" />
+        <Content Include="build\**\*.*" Pack="true" PackagePath="build\" />
     </ItemGroup>
 
     <!-- Include the .targets file -->
     <ItemGroup>
-        <None Include="build\Soenneker.Utils.Usings.targets" Pack="true"
-              PackagePath="build\Soenneker.Utils.Usings.targets" />
+        <Content Include="build\Soenneker.Utils.Usings.targets" Pack="true" PackagePath="build\Soenneker.Utils.Usings.targets" />
     </ItemGroup>
 
     <ItemGroup>
