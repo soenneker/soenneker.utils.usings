@@ -1,19 +1,29 @@
 <Project>
     <Target Name="CopyBuildHostFiles" AfterTargets="Build">
         <ItemGroup>
-            <BuildHostFiles Include="$(MSBuildThisFileDirectory)BuildHost-*/*.*" />
+            <BuildHostFiles Include="$(MSBuildThisFileDirectory)BuildHost-netcore\**\*.*" />
         </ItemGroup>
         <Copy SourceFiles="@(BuildHostFiles)" 
-              DestinationFolder="$(OutputPath)" 
+              DestinationFolder="$(OutputPath)BuildHost-netcore" 
               SkipUnchangedFiles="true" />
     </Target>
 
     <Target Name="CopyBuildHostFilesOnPublish" AfterTargets="Publish">
         <ItemGroup>
-            <BuildHostFiles Include="$(MSBuildThisFileDirectory)BuildHost-*/*.*" />
+            <BuildHostFiles Include="$(MSBuildThisFileDirectory)BuildHost-netcore\**\*.*" />
         </ItemGroup>
         <Copy SourceFiles="@(BuildHostFiles)" 
-              DestinationFolder="$(PublishDir)" 
+              DestinationFolder="$(PublishDir)BuildHost-netcore" 
+              SkipUnchangedFiles="true" />
+    </Target>
+
+    <!-- Ensure files are copied during restore -->
+    <Target Name="CopyBuildHostFilesOnRestore" AfterTargets="Restore">
+        <ItemGroup>
+            <BuildHostFiles Include="$(MSBuildThisFileDirectory)BuildHost-netcore\**\*.*" />
+        </ItemGroup>
+        <Copy SourceFiles="@(BuildHostFiles)" 
+              DestinationFolder="$(OutputPath)BuildHost-netcore" 
               SkipUnchangedFiles="true" />
     </Target>
 </Project>

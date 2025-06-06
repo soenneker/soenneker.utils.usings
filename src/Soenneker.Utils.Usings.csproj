@@ -41,10 +41,22 @@
         <None Include="..\icon.png" Pack="true" PackagePath="\" />
     </ItemGroup>
 
+    <!-- Copy MSBuild host files -->
+    <Target Name="CopyMSBuildHostFiles" AfterTargets="Build">
+        <ItemGroup>
+            <_MSBuildPackageReference Include="@(PackageReference)" Condition="'%(PackageReference.Identity)' == 'Microsoft.CodeAnalysis.Workspaces.MSBuild'" />
+            <MSBuildHostFiles Include="$(NuGetPackageRoot)microsoft.codeanalysis.workspaces.msbuild\%(_MSBuildPackageReference.Version)\build\**\*.*" />
+        </ItemGroup>
+        <Copy SourceFiles="@(MSBuildHostFiles)" 
+              DestinationFolder="$(OutputPath)BuildHost-netcore" 
+              SkipUnchangedFiles="true" />
+    </Target>
+
     <!-- Include BuildHost folders -->
     <ItemGroup>
         <None Include="$(OutputPath)BuildHost-netcore\**\*.*" Pack="true" PackagePath="build\BuildHost-netcore\"
               CopyToOutputDirectory="PreserveNewest" />
+        <None Include="build\**\*.*" Pack="true" PackagePath="build\" />
     </ItemGroup>
 
     <!-- Include the .targets file -->
@@ -60,16 +72,5 @@
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" Version="4.14.0" />
         <PackageReference Include="Soenneker.Utils.File" Version="3.0.1942" />
     </ItemGroup>
-
-    <!-- Copy MSBuild host files -->
-    <Target Name="CopyMSBuildHostFiles" AfterTargets="Build">
-        <ItemGroup>
-            <_MSBuildPackageReference Include="@(PackageReference)" Condition="'%(PackageReference.Identity)' == 'Microsoft.CodeAnalysis.Workspaces.MSBuild'" />
-            <MSBuildHostFiles Include="$(NuGetPackageRoot)microsoft.codeanalysis.workspaces.msbuild\%(_MSBuildPackageReference.Version)\build\**\*.*" />
-        </ItemGroup>
-        <Copy SourceFiles="@(MSBuildHostFiles)" 
-              DestinationFolder="$(OutputPath)BuildHost-netcore" 
-              SkipUnchangedFiles="true" />
-    </Target>
 
 </Project>
