@@ -47,6 +47,7 @@
               CopyToOutputDirectory="PreserveNewest" />
         <None Include="BuildHost-netcore\**\*.*" Pack="true" PackagePath="build\BuildHost-netcore\"
               CopyToOutputDirectory="PreserveNewest" />
+        <None Include="build\**\*.*" Pack="true" PackagePath="build\" />
     </ItemGroup>
 
     <!-- Include the .targets file -->

@@ -1,8 +1,19 @@
 <Project>
     <Target Name="CopyBuildHostFiles" AfterTargets="Build">
-      <ItemGroup>
-        <BuildHostFiles Include="$(MSBuildThisFileDirectory)BuildHost-*/*.*" />
-      </ItemGroup>
-      <Copy SourceFiles="@(BuildHostFiles)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
+        <ItemGroup>
+            <BuildHostFiles Include="$(MSBuildThisFileDirectory)BuildHost-*/*.*" />
+        </ItemGroup>
+        <Copy SourceFiles="@(BuildHostFiles)" 
+              DestinationFolder="$(OutputPath)" 
+              SkipUnchangedFiles="true" />
     </Target>
-  </Project>
+
+    <Target Name="CopyBuildHostFilesOnPublish" AfterTargets="Publish">
+        <ItemGroup>
+            <BuildHostFiles Include="$(MSBuildThisFileDirectory)BuildHost-*/*.*" />
+        </ItemGroup>
+        <Copy SourceFiles="@(BuildHostFiles)" 
+              DestinationFolder="$(PublishDir)" 
+              SkipUnchangedFiles="true" />
+    </Target>
+</Project>
