@@ -130,7 +130,7 @@ public sealed class UsingsUtil : IUsingsUtil
 
                 if (!originalText.ContentEquals(updatedText))
                 {
-                    await _fileUtil.Write(docPath, updatedText.ToString(), cancellationToken).NoSync();
+                    await _fileUtil.Write(docPath, updatedText.ToString(), true, cancellationToken).NoSync();
                     changesMade = true;
                     _logger.LogInformation("Applied missing usings to: {DocPath}", docPath);
                 }
