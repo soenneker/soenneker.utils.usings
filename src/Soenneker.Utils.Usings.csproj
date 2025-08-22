@@ -43,11 +43,14 @@
 
     <ItemGroup>
         <PackageReference Include="Microsoft.Build.Locator" Version="1.9.1" />
-        <PackageReference Include="Microsoft.Build.Tasks.Core" Version="17.14.8" />
         <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="4.14.0" PrivateAssets="analyzers;build" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.14.0" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" Version="4.14.0" />
         <PackageReference Include="Soenneker.Utils.File" Version="3.0.1968" />
+
+        <!-- Pin vulnerable transitive -->
+        <PackageReference Include="Microsoft.Build.Tasks.Core" Version="17.14.8" PrivateAssets="all" ExcludeAssets="runtime" />
+        <PackageReference Include="System.Formats.Asn1" Version="9.0.8" PrivateAssets="all" />
     </ItemGroup>
 
 </Project>
