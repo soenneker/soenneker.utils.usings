@@ -56,7 +56,7 @@
             <IncludeAssets>none</IncludeAssets>
         </PackageReference>
 
-        <PackageReference Include="System.Formats.Asn1" Version="9.0.8">
+        <PackageReference Include="System.Formats.Asn1" Version="9.0.9">
             <!-- Keep your library clean but let the version flow -->
             <IncludeAssets>none</IncludeAssets>
         </PackageReference>
