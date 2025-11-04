@@ -46,7 +46,7 @@
         <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="4.14.0" PrivateAssets="analyzers;build" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.14.0" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" Version="4.14.0" />
-        <PackageReference Include="Soenneker.Utils.File" Version="4.0.1989" />
+        <PackageReference Include="Soenneker.Utils.File" Version="4.0.1990" />
 
         <!-- Pin vulnerable transitive -->
         <PackageReference Include="Microsoft.Build.Tasks.Core" Version="17.14.28">
