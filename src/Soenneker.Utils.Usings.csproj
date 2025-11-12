@@ -49,7 +49,7 @@
         <PackageReference Include="Soenneker.Utils.File" Version="4.0.1995" />
 
         <!-- Pin vulnerable transitive -->
-        <PackageReference Include="Microsoft.Build.Tasks.Core" Version="17.14.28">
+        <PackageReference Include="Microsoft.Build.Tasks.Core" Version="18.0.2">
             <!-- Satisfy the MSBuildLocator check -->
             <ExcludeAssets>runtime</ExcludeAssets>
             <!-- Belt-and-suspenders: bring in no assets at all for this project -->
