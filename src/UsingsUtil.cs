@@ -1,5 +1,4 @@
-﻿// Optimized UsingsUtil without parallelization
-using Microsoft.Build.Locator;
+﻿using Microsoft.Build.Locator;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
@@ -9,7 +8,6 @@ using Microsoft.CodeAnalysis.Options;
 using Microsoft.CodeAnalysis.Simplification;
 using Microsoft.CodeAnalysis.Text;
 using Soenneker.Extensions.Task;
-using Soenneker.Extensions.ValueTask;
 using Soenneker.Utils.File.Abstract;
 using Soenneker.Utils.Usings.Abstract;
 using System;
@@ -27,6 +25,7 @@ public sealed class UsingsUtil : IUsingsUtil
 {
     private readonly IFileUtil _fileUtil;
     private readonly ILogger<UsingsUtil> _logger;
+
     private static readonly Lazy<CodeFixProvider> _addImportProvider = new(() =>
     {
         var type = Type.GetType("Microsoft.CodeAnalysis.CSharp.AddImport.CSharpAddImportCodeFixProvider, Microsoft.CodeAnalysis.CSharp.Features");
@@ -62,20 +61,29 @@ public sealed class UsingsUtil : IUsingsUtil
 
             using var workspace = MSBuildWorkspace.Create();
             _logger.LogInformation("Project loading: {ProjectPath}...", csprojPath);
-            Project project = await workspace.OpenProjectAsync(csprojPath, cancellationToken: cancellationToken).NoSync();
+            Project project = await workspace.OpenProjectAsync(csprojPath, cancellationToken: cancellationToken)
+                                             .NoSync();
             _logger.LogInformation("Project loaded: {ProjectName}", project.Name);
 
             _logger.LogInformation("Compiling project: {ProjectName}...", project.Name);
-            Compilation compilation = await project.GetCompilationAsync(cancellationToken).NoSync();
+            Compilation? compilation = await project.GetCompilationAsync(cancellationToken)
+                                                    .NoSync();
+
+            if (compilation == null)
+            {
+                _logger.LogError("Failed to compile project: {ProjectName}", project.Name);
+                return;
+            }
+
             _logger.LogInformation("Compilation complete: {AssemblyName}", compilation.AssemblyName);
             Dictionary<SyntaxTree, List<Diagnostic>> diagMap = compilation.GetDiagnostics(cancellationToken)
-                                                                          .Where(d => d.Id is "CS0246" or "CS0103" or "CS0738" or "CS1061" && d.Location.SourceTree != null)
+                                                                          .Where(d => d.Id is "CS0246" or "CS0103" or "CS0738" or "CS1061" &&
+                                                                                      d.Location.SourceTree != null)
                                                                           .GroupBy(d => d.Location.SourceTree!)
                                                                           .ToDictionary(g => g.Key, g => g.ToList());
 
-            OptionSet options = workspace.Options
-                .WithChangedOption(FormattingOptions.UseTabs, LanguageNames.CSharp, false)
-                .WithChangedOption(FormattingOptions.TabSize, LanguageNames.CSharp, 4);
+            OptionSet options = workspace.Options.WithChangedOption(FormattingOptions.UseTabs, LanguageNames.CSharp, false)
+                                         .WithChangedOption(FormattingOptions.TabSize, LanguageNames.CSharp, 4);
 
             foreach (Document originalDoc in project.Documents)
             {
@@ -94,25 +102,40 @@ public sealed class UsingsUtil : IUsingsUtil
                 {
                     var actions = new List<CodeAction>();
                     var context = new CodeFixContext(document, diagnostic, (action, _) => actions.Add(action), cancellationToken);
-                    await provider.RegisterCodeFixesAsync(context).NoSync();
+                    await provider.RegisterCodeFixesAsync(context)
+                                  .NoSync();
 
                     foreach (CodeAction action in actions)
                     {
                         ImmutableArray<CodeActionOperation> operations = await action.GetOperationsAsync(cancellationToken);
                         foreach (ApplyChangesOperation op in operations.OfType<ApplyChangesOperation>())
+                        {
                             document = op.ChangedSolution.GetDocument(document.Id)!;
+                        }
                     }
                 }
 
-                SyntaxNode? originalRoot = await originalDoc.GetSyntaxRootAsync(cancellationToken).NoSync();
-                SyntaxNode? updatedRoot = await document.GetSyntaxRootAsync(cancellationToken).NoSync();
+                SyntaxNode? originalRoot = await originalDoc.GetSyntaxRootAsync(cancellationToken)
+                                                            .NoSync();
+                SyntaxNode? updatedRoot = await document.GetSyntaxRootAsync(cancellationToken)
+                                                        .NoSync();
                 if (!originalRoot!.IsEquivalentTo(updatedRoot, topLevel: false))
                 {
-                    document = await Simplifier.ReduceAsync(document, options, cancellationToken).NoSync();
-                    document = await Formatter.FormatAsync(document, options, cancellationToken).NoSync();
+                    document = await Simplifier.ReduceAsync(document, options, cancellationToken)
+                                               .NoSync();
+                    document = await Formatter.FormatAsync(document, options, cancellationToken)
+                                              .NoSync();
                 }
 
-                SemanticModel? updatedSemanticModel = await document.GetSemanticModelAsync(cancellationToken).NoSync();
+                SemanticModel? updatedSemanticModel = await document.GetSemanticModelAsync(cancellationToken)
+                                                                    .NoSync();
+
+                if (updatedSemanticModel == null)
+                {
+                    _logger.LogWarning("Could not get updated semantic model for {DocPath}, skipping.", docPath);
+                    continue;
+                }
+
                 ImmutableArray<Diagnostic> newDiagnostics = updatedSemanticModel.GetDiagnostics(cancellationToken: cancellationToken);
 
                 int resolvedCount = filtered.Count(d => !newDiagnostics.Any(nd => nd.Id == d.Id && nd.Location.SourceSpan == d.Location.SourceSpan));
@@ -125,12 +148,15 @@ public sealed class UsingsUtil : IUsingsUtil
                     continue;
                 }
 
-                SourceText originalText = await originalDoc.GetTextAsync(cancellationToken).NoSync();
-                SourceText updatedText = await document.GetTextAsync(cancellationToken).NoSync();
+                SourceText originalText = await originalDoc.GetTextAsync(cancellationToken)
+                                                           .NoSync();
+                SourceText updatedText = await document.GetTextAsync(cancellationToken)
+                                                       .NoSync();
 
                 if (!originalText.ContentEquals(updatedText))
                 {
-                    await _fileUtil.Write(docPath, updatedText.ToString(), true, cancellationToken).NoSync();
+                    await _fileUtil.Write(docPath, updatedText.ToString(), true, cancellationToken)
+                                   .NoSync();
                     changesMade = true;
                     _logger.LogInformation("Applied missing usings to: {DocPath}", docPath);
                 }
@@ -144,8 +170,8 @@ public sealed class UsingsUtil : IUsingsUtil
                 _logger.LogWarning("Maximum number of passes ({MaxPasses}) reached. Stopping iteration.", maxPasses);
                 break;
             }
-
-        } while (loopUntilNoChanges && changesMade);
+        }
+        while (loopUntilNoChanges && changesMade);
 
         _logger.LogInformation("Completed adding missing usings.");
         _logger.LogInformation("Total missing using diagnostics found: {TotalDetected}", totalDetected);

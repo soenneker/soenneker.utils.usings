@@ -42,24 +42,13 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.Build.Locator" Version="1.10.12" />
-        <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="4.14.0" PrivateAssets="analyzers;build" />
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.14.0" />
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" Version="4.14.0" />
+        <!--Can't update until this fixed: https://developercommunity.visualstudio.com/t/MSBL001-triggered-by-transitive-Microsof/11003897-->
+        <PackageReference Include="Microsoft.Build.Locator" Version="[1.10.12]" />
+        <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="5.0.0"
+                          PrivateAssets="analyzers;build" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.0.0" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" Version="5.0.0" />
         <PackageReference Include="Soenneker.Utils.File" Version="4.0.1995" />
-
-        <!-- Pin vulnerable transitive -->
-        <PackageReference Include="Microsoft.Build.Tasks.Core" Version="18.0.2">
-            <!-- Satisfy the MSBuildLocator check -->
-            <ExcludeAssets>runtime</ExcludeAssets>
-            <!-- Belt-and-suspenders: bring in no assets at all for this project -->
-            <IncludeAssets>none</IncludeAssets>
-        </PackageReference>
-
-        <PackageReference Include="System.Formats.Asn1" Version="10.0.0">
-            <!-- Keep your library clean but let the version flow -->
-            <IncludeAssets>none</IncludeAssets>
-        </PackageReference>
     </ItemGroup>
 
 </Project>
