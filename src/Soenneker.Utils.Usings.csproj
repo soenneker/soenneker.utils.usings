@@ -48,7 +48,7 @@
                           PrivateAssets="analyzers;build" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.0.0" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" Version="5.0.0" />
-        <PackageReference Include="Soenneker.Utils.File" Version="4.0.1997" />
+        <PackageReference Include="Soenneker.Utils.File" Version="4.0.1998" />
     </ItemGroup>
 
 </Project>
