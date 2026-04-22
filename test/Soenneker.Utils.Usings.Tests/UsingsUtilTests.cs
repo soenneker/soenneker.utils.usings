@@ -1,27 +1,26 @@
-﻿using Soenneker.Utils.Usings.Abstract;
-using Soenneker.Tests.FixturedUnit;
-using Xunit;
+using Soenneker.Utils.Usings.Abstract;
+using Soenneker.Tests.HostedUnit;
 using System.Threading.Tasks;
-using Soenneker.Facts.Local;
+using Soenneker.Tests.Attributes.Local;
 
 namespace Soenneker.Utils.Usings.Tests;
 
-[Collection("Collection")]
-public class UsingsUtilTests : FixturedUnitTest
+[ClassDataSource<Host>(Shared = SharedType.PerTestSession)]
+public class UsingsUtilTests : HostedUnitTest
 {
     private readonly IUsingsUtil _util;
 
-    public UsingsUtilTests(Fixture fixture, ITestOutputHelper output) : base(fixture, output)
+    public UsingsUtilTests(Host host) : base(host)
     {
         _util = Resolve<IUsingsUtil>(true);
     }
 
-    [Fact]
+    [Test]
     public void Default()
     {
     }
 
-    [LocalFact]
+    [LocalOnly]
     public async ValueTask AddMissing_should_add_missing()
     {
         await _util.AddMissing("C:\\git\\Soenneker\\GitHub\\soenneker.github.openapiclient\\src\\soenneker.github.openapiclient.csproj", true, 5, CancellationToken);
