@@ -23,6 +23,6 @@ public class UsingsUtilTests : HostedUnitTest
     [LocalOnly]
     public async ValueTask AddMissing_should_add_missing()
     {
-        await _util.AddMissing("C:\\git\\Soenneker\\GitHub\\soenneker.github.openapiclient\\src\\soenneker.github.openapiclient.csproj", true, 5, CancellationToken);
+        await _util.AddMissing("C:\\git\\Soenneker\\GitHub\\soenneker.github.openapiclient\\src\\soenneker.github.openapiclient.csproj", true, 5, System.Threading.CancellationToken.None);
     }
 }
