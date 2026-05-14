@@ -44,7 +44,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.Build.Locator" Version="1.11.2" />
+        <PackageReference Include="Microsoft.Build.Locator" Version="1.11.2" PrivateAssets="build;buildTransitive;analyzers" />
         <PackageReference Include="Microsoft.Build.Framework" Version="18.4.0" ExcludeAssets="runtime" PrivateAssets="all">
             <IncludeAssets>compile; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
