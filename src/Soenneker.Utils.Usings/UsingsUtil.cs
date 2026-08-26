@@ -72,17 +72,24 @@ public sealed class UsingsUtil : IUsingsUtil
         var pass = 0;
         bool changesMade;
 
+        using var workspace = MSBuildWorkspace.Create();
+
+        _logger.LogInformation("Project loading: {ProjectPath}...", csprojPath);
+        Project project = await workspace.OpenProjectAsync(csprojPath, cancellationToken: cancellationToken).NoSync();
+        _logger.LogInformation("Project loaded: {ProjectName}", project.Name);
+
+        OptionSet options = workspace.Options
+            .WithChangedOption(FormattingOptions.UseTabs, LanguageNames.CSharp, false)
+            .WithChangedOption(FormattingOptions.TabSize, LanguageNames.CSharp, 4);
+
+        CodeFixProvider provider = _addImportProvider.Value;
+        var actions = new List<CodeAction>(capacity: 4);
+
         do
         {
             pass++;
             _logger.LogInformation("Starting pass {Pass}...", pass);
             changesMade = false;
-
-            using var workspace = MSBuildWorkspace.Create();
-
-            _logger.LogInformation("Project loading: {ProjectPath}...", csprojPath);
-            Project project = await workspace.OpenProjectAsync(csprojPath, cancellationToken: cancellationToken).NoSync();
-            _logger.LogInformation("Project loaded: {ProjectName}", project.Name);
 
             _logger.LogInformation("Compiling project: {ProjectName}...", project.Name);
             Compilation? compilation = await project.GetCompilationAsync(cancellationToken).NoSync();
@@ -103,18 +110,13 @@ public sealed class UsingsUtil : IUsingsUtil
                 break;
             }
 
-            OptionSet options = workspace.Options
-                .WithChangedOption(FormattingOptions.UseTabs, LanguageNames.CSharp, false)
-                .WithChangedOption(FormattingOptions.TabSize, LanguageNames.CSharp, 4);
-
-            CodeFixProvider provider = _addImportProvider.Value;
-
-            // Reuse list to reduce allocations.
-            var actions = new List<CodeAction>(capacity: 4);
-
-            foreach (Document originalDoc in project.Documents)
+            foreach (DocumentId documentId in project.DocumentIds)
             {
                 cancellationToken.ThrowIfCancellationRequested();
+
+                Document? originalDoc = project.GetDocument(documentId);
+                if (originalDoc is null)
+                    continue;
 
                 string? docPath = originalDoc.FilePath;
                 if (docPath is null)
@@ -196,6 +198,7 @@ public sealed class UsingsUtil : IUsingsUtil
                 if (!originalText.ContentEquals(updatedText))
                 {
                     await _fileUtil.Write(docPath, updatedText.ToString(), true, cancellationToken).NoSync();
+                    project = document.Project;
                     changesMade = true;
                     _logger.LogInformation("Applied missing usings to: {DocPath}", docPath);
                 }
