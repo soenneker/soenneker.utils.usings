@@ -4,10 +4,24 @@
 [![](https://img.shields.io/github/actions/workflow/status/soenneker/soenneker.utils.usings/codeql.yml?label=CodeQL&style=for-the-badge)](https://github.com/soenneker/soenneker.utils.usings/actions/workflows/codeql.yml)
 
 # ![](https://user-images.githubusercontent.com/4441470/224455560-91ed3ee7-f510-4041-a8d2-3fc093025112.png) Soenneker.Utils.Usings
-### Applies code fixes for missing using directives in a C# project using Roslyn analyzers.
+Applies code fixes for missing using directives in a C# project using Roslyn analyzers.
 
 ## Installation
 
-```
+```bash
 dotnet add package Soenneker.Utils.Usings
 ```
+
+## Quick start
+
+```csharp
+using Soenneker.Utils.Usings.Registrars;
+
+services.AddUsingsUtilAsSingleton();
+```
+
+Then inject `IUsingsUtil` wherever you need it.
+
+## Common operations
+
+- `AddMissing()` - Opens the project with Roslyn, finds missing-name diagnostics such as CS0246 and CS0103, and applies resolvable `using` directives. It can repeat for up to `maxPasses` when one fix reveals another.
