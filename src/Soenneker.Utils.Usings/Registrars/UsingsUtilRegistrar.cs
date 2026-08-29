@@ -13,6 +13,7 @@ public static class UsingsUtilRegistrar
     /// <summary>
     /// Adds <see cref="IUsingsUtil"/> as a singleton service. <para/>
     /// </summary>
+    /// <returns>Adds <see cref="IUsingsUtil"/> as a singleton service. <para/>.</returns>
     public static IServiceCollection AddUsingsUtilAsSingleton(this IServiceCollection services)
     {
         services.AddFileUtilAsSingleton().TryAddSingleton<IUsingsUtil, UsingsUtil>();
@@ -23,6 +24,7 @@ public static class UsingsUtilRegistrar
     /// <summary>
     /// Adds <see cref="IUsingsUtil"/> as a scoped service. <para/>
     /// </summary>
+    /// <returns>Adds <see cref="IUsingsUtil"/> as a scoped service. <para/>.</returns>
     public static IServiceCollection AddUsingsUtilAsScoped(this IServiceCollection services)
     {
         services.AddFileUtilAsScoped().TryAddScoped<IUsingsUtil, UsingsUtil>();
