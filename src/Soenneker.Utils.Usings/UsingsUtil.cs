@@ -20,7 +20,6 @@ using System.Threading.Tasks;
 
 namespace Soenneker.Utils.Usings;
 
-/// <inheritdoc cref="IUsingsUtil"/>
 public sealed class UsingsUtil : IUsingsUtil
 {
     private readonly IFileUtil _fileUtil;
@@ -145,12 +144,10 @@ public sealed class UsingsUtil : IUsingsUtil
 
                     await provider.RegisterCodeFixesAsync(context).NoSync();
 
-                    // Apply all registered actions (matches your behavior).
-                    // If you want a speed win, apply only actions[0] (often enough).
-                    for (int a = 0; a < actions.Count; a++)
+                    if (actions.Count > 0)
                     {
                         ImmutableArray<CodeActionOperation> operations =
-                            await actions[a].GetOperationsAsync(cancellationToken).NoSync();
+                            await actions[0].GetOperationsAsync(cancellationToken).NoSync();
 
                         for (int opIndex = 0; opIndex < operations.Length; opIndex++)
                         {
