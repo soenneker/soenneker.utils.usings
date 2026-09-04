@@ -20,6 +20,7 @@ using System.Threading.Tasks;
 
 namespace Soenneker.Utils.Usings;
 
+/// <inheritdoc cref="IUsingsUtil" />
 public sealed class UsingsUtil : IUsingsUtil
 {
     private readonly IFileUtil _fileUtil;
