@@ -88,7 +88,8 @@ public sealed class UsingsUtil : IUsingsUtil
         do
         {
             pass++;
-            _logger.LogInformation("Starting pass {Pass}...", pass);
+            if (_logger.IsEnabled(LogLevel.Information))
+                _logger.LogInformation("Starting pass {Pass}...", pass);
             changesMade = false;
 
             _logger.LogInformation("Compiling project: {ProjectName}...", project.Name);
@@ -198,7 +199,8 @@ public sealed class UsingsUtil : IUsingsUtil
                     await _fileUtil.Write(docPath, updatedText.ToString(), true, cancellationToken).NoSync();
                     project = document.Project;
                     changesMade = true;
-                    _logger.LogInformation("Applied missing usings to: {DocPath}", docPath);
+                    if (_logger.IsEnabled(LogLevel.Information))
+                        _logger.LogInformation("Applied missing usings to: {DocPath}", docPath);
                 }
             }
 
